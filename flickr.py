@@ -25,27 +25,20 @@ def params_unique_combination(baseurl, params_d, private_keys=["api_key"]):
             res.append("{}-{}".format(k, params_d[k]))
     return baseurl + "_".join(res)
 
-def search_flickr(search_term):
+def search_flickr(diction):
     if not FLICKR_API_KEY:
         raise Exception('Flickr API Key is missing!')
 
     baseurl = "https://api.flickr.com/services/rest/"
-    if type(search_term) == type(""):
-        params_diction = {
-            "method": "flickr.photos.search",
-            "format": "json",
-            "api_key": FLICKR_API_KEY,
-            "tags": search_term,
-            "per_page": 10,
-            "nojsoncallback": 1
-        }
-    else:
-        params_diction = {
-            "method": "flickr.photos.getInfo",
-            "format": "json",
-            "api_key": FLICKR_API_KEY,
-            "id": search_term
-        }
+    params_diction = {
+        "format": "json",
+        "api_key": FLICKR_API_KEY,
+        "nojsoncallback": 1,
+    }
+
+    for key in diction:
+        params_diction[key] = diction[key]
+
     unique_ident = params_unique_combination(baseurl,params_diction)
     if unique_ident in CACHE_DICTION:
         return CACHE_DICTION[unique_ident]
@@ -60,9 +53,10 @@ def search_flickr(search_term):
 
 class Photo:
     def __init__(self, photo_dict):
-        self.title = photo_dict['title']
+        self.title = photo_dict['title']['_content']
         self.id = photo_dict['id']
-        self.owner = photo_dict['owner']
+        self.owner = photo_dict['owner']['nsid']
+        self.owner_username = photo_dict['owner']['username']
 
     def __str__(self):
         return '{0} by {1}'.format(self.title, self.owner)
@@ -72,11 +66,19 @@ CACHE_DICTION = load_cache_json()
 if DEBUG:
     print(CACHE_DICTION)
 
-results = search_flickr('sunset summer')
+results = search_flickr({
+    "method": "flickr.photo.search",
+    "tags": 'sunset summer',
+    "per_page":10
+})
 
 photos_list = []
 for r in results['photos']['photo']:
-    photos_list.append(Photo(r))
+    photo_id = r['id']
+    photo_results - search_flickr({
+        "method": "flicker.photo.getInfo",
+        "photo_id": photo_id
+    })
 
 print()
 print("= compare these outputs = >> ")
